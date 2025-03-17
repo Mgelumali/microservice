@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Endpoints.HttpGateway/Dockerfile
+    ports:
+      - "5000:80"
+    depends_on:
+      - sqlserver
+      - rabbitmq
+
+  oauth:
+    build:
+      context: .
+      dockerfile: Endpoints.Oauth/Dockerfile
+    ports:
+      - "5001:80"
+    depends_on:
+      - sqlserver
+      - rabbitmq
+
+  webapi:
+    build:
+      context: .
+      dockerfile: Endpoints.WebApi/Dockerfile
+    ports:
+      - "5002:80"
+    depends_on:
+      - sqlserver
+      - rabbitmq
+
+  angular:
+    build:
+      context: .
+      dockerfile: book-seller/Dockerfile
+    ports:
+      - "4200:80"
+    depends_on:
+      - api-gateway
+      - oauth
+      - webapi
+
+volumes:
+  sqldata: 
